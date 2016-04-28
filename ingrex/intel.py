@@ -36,7 +36,10 @@ class Intel(object):
     def fetch(self, url, payload):
         "raw request with auto-retry and connection check function"
         payload['v'] = self.version
-        request = requests.post(url, data=json.dumps(payload), headers=self.headers)
+        try:
+            request = requests.post(url, data=json.dumps(payload), headers=self.headers)
+        except requests.ConnectionError:
+            raise IntelError
         return request.json()['result']
 
     def fetch_msg(self, mints=-1, maxts=-1, reverse=False, tab='all'):
@@ -119,6 +122,9 @@ class Intel(object):
             'passcode': passcode
         }
         return self.fetch(url, payload)
+
+class IntelError(IOError):
+    """Intel Error"""
 
 if __name__ == '__main__':
     pass
