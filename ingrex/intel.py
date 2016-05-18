@@ -3,12 +3,19 @@ import requests
 import re
 import json
 
+
 class Intel(object):
     "main class with all Intel functions"
-    def __init__(self, cookies, field):
+
+    @property
+    def cookie(self):
+        return self.cookie
+
+    @cookie.setter
+    def cookie(self, cookies):
         token = re.findall(r'csrftoken=(\w*);', cookies)[0]
         self.headers = {
-            'accept-encoding' :'gzip, deflate',
+            'accept-encoding': 'gzip, deflate',
             'content-type': 'application/json; charset=UTF-8',
             'cookie': cookies,
             'origin': 'https://www.ingress.com',
@@ -16,6 +23,9 @@ class Intel(object):
             'user-agent': 'Mozilla/5.0 (MSIE 9.0; Windows NT 6.1; Trident/5.0)',
             'x-csrftoken': token,
         }
+
+    def __init__(self, field, cookies=None, credential=None, phantom_path=None, phantom_args=None):
+        self.credential = credential
         self.field = {
             'maxLatE6': field['maxLatE6'],
             'minLatE6': field['minLatE6'],
@@ -26,7 +36,46 @@ class Intel(object):
             'latE6': (field['maxLatE6'] + field['minLatE6']) >> 1,
             'lngE6': (field['maxLngE6'] + field['minLngE6']) >> 1,
         }
+        self.phantom_path = phantom_path
+        self.phantom_args = phantom_args
+        if cookies is not None:
+            self.cookie = cookies
+        elif credential is not None:
+            self.fetch_cookie()
+        else:
+            raise CredentialError()
         self.refresh_version()
+
+    def fetch_cookie(self):
+        if self.credential is None:
+            return
+        from selenium import webdriver
+        import time
+        # get a new cookie for this program
+        if self.phantom_path is not None:
+            driver = webdriver.PhantomJS(self.phantom_path, service_args=self.phantom_args)
+        else:
+            driver = webdriver.PhantomJS(service_args=self.phantom_args)
+        driver.get('https://www.ingress.com/intel')
+        # get the login page
+        link = driver.find_elements_by_tag_name('a')[0].get_attribute('href')
+        driver.get(link)
+
+        # simulate manual login
+        time.sleep(1)
+        driver.set_page_load_timeout(10)
+        driver.set_script_timeout(20)
+        driver.find_element_by_id('Email').send_keys(self.credential[0])
+        driver.find_element_by_css_selector('#next').click()
+
+        time.sleep(1)
+        driver.find_element_by_id('Passwd').send_keys(self.credential[1])
+        driver.find_element_by_css_selector('#signIn').click()
+
+        # get the cookies
+        temp = driver.get_cookies()
+        self.cookie = ';'.join(['{0}={1}'.format(x["name"], x["value"]) for x in temp])
+        driver.quit()
 
     def refresh_version(self):
         "refresh api version for request"
@@ -36,11 +85,17 @@ class Intel(object):
     def fetch(self, url, payload):
         "raw request with auto-retry and connection check function"
         payload['v'] = self.version
-        try:
-            request = requests.post(url, data=json.dumps(payload), headers=self.headers)
-        except requests.ConnectionError:
-            raise IntelError
-        return request.json()['result']
+        count = 0
+        while count < 3:
+            try:
+                request = requests.post(url, data=json.dumps(payload), headers=self.headers)
+                return request.json()['result']
+            except requests.ConnectionError:
+                raise IntelError
+            except json.JSONDecodeError:
+                self.fetch_cookie()
+                continue
+        raise CookieError
 
     def fetch_msg(self, mints=-1, maxts=-1, reverse=False, tab='all'):
         "fetch message from Ingress COMM, tab can be 'all', 'faction', 'alerts'"
@@ -65,7 +120,6 @@ class Intel(object):
             'tileKeys': tilekeys
         }
         return self.fetch(url, payload)
-
 
     def fetch_portal(self, guid):
         "fetch portal details from Ingress"
@@ -123,8 +177,18 @@ class Intel(object):
         }
         return self.fetch(url, payload)
 
-class IntelError(IOError):
+
+class IntelError(BaseException):
     """Intel Error"""
+
+
+class CookieError(IntelError):
+    """Intel Error"""
+
+
+class CredentialError(IntelError):
+    """Intel Error"""
+
 
 if __name__ == '__main__':
     pass
