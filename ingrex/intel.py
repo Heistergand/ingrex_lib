@@ -25,6 +25,7 @@ class Intel(object):
         }
 
     def __init__(self, field, cookies=None, credential=None, phantom_path=None, phantom_args=None):
+        self.DEBUG = False
         self.credential = credential
         self.field = {
             'maxLatE6': field['maxLatE6'],
@@ -58,21 +59,23 @@ class Intel(object):
             driver = webdriver.PhantomJS(service_args=self.phantom_args)
         driver.get('https://www.ingress.com/intel')
         # get the login page
-        time.sleep(1)
         link = driver.find_elements_by_tag_name('a')[0].get_attribute('href')
         driver.get(link)
-
+        if self.DEBUG:
+            driver.get_screenshot_as_file('1.png')
         # simulate manual login
-        time.sleep(1)
         driver.set_page_load_timeout(10)
         driver.set_script_timeout(20)
         driver.find_element_by_id('Email').send_keys(self.credential[0])
         driver.find_element_by_css_selector('#next').click()
-
-        time.sleep(1)
+        time.sleep(3)
+        if self.DEBUG:
+            driver.get_screenshot_as_file('2.png')
         driver.find_element_by_id('Passwd').send_keys(self.credential[1])
         driver.find_element_by_css_selector('#signIn').click()
-
+        time.sleep(3)
+        if self.DEBUG:
+            driver.get_screenshot_as_file('3.png')
         # get the cookies
         temp = driver.get_cookies()
         self.cookie = ';'.join(['{0}={1}'.format(x["name"], x["value"]) for x in temp])
