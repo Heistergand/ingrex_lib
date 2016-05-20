@@ -58,6 +58,7 @@ class Intel(object):
             driver = webdriver.PhantomJS(service_args=self.phantom_args)
         driver.get('https://www.ingress.com/intel')
         # get the login page
+        time.sleep(1)
         link = driver.find_elements_by_tag_name('a')[0].get_attribute('href')
         driver.get(link)
 
@@ -93,7 +94,11 @@ class Intel(object):
             except requests.ConnectionError:
                 raise IntelError
             except json.JSONDecodeError:
+                count += 1
                 self.fetch_cookie()
+                continue
+            except Exception:
+                count += 1
                 continue
         raise CookieError
 
