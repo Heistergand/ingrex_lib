@@ -93,7 +93,7 @@ class Intel(object):
                 return request.json()['result']
             except requests.ConnectionError:
                 raise IntelError
-            except json.JSONDecodeError:
+            except ValueError:
                 count += 1
                 self.fetch_cookie()
                 continue
