@@ -24,7 +24,7 @@ class Intel(object):
             'x-csrftoken': token,
         }
 
-    def __init__(self, field, cookies=None, credential=None, phantom_path=None, phantom_args=None):
+    def __init__(self, field, cookies=None, credential=None, phantom_path=None, phantom_args=None, proxies=None):
         self.DEBUG = False
         self.credential = credential
         self.field = {
@@ -39,6 +39,8 @@ class Intel(object):
         }
         self.phantom_path = phantom_path
         self.phantom_args = phantom_args
+        self.session = requests.session()
+        self.session.proxies = proxies
         if cookies is not None:
             self.cookie = cookies
         elif credential is not None:
@@ -46,6 +48,7 @@ class Intel(object):
         else:
             raise CredentialError()
         self.refresh_version()
+
 
     def fetch_cookie(self):
         if self.credential is None:
@@ -83,7 +86,7 @@ class Intel(object):
 
     def refresh_version(self):
         "refresh api version for request"
-        request = requests.get('https://www.ingress.com/intel', headers=self.headers)
+        request = self.session.get('https://www.ingress.com/intel', headers=self.headers)
         self.version = re.findall(r'gen_dashboard_(\w*)\.js', request.text)[0]
 
     def fetch(self, url, payload):
@@ -92,7 +95,7 @@ class Intel(object):
         count = 0
         while count < 3:
             try:
-                request = requests.post(url, data=json.dumps(payload), headers=self.headers)
+                request = self.session.post(url, data=json.dumps(payload), headers=self.headers)
                 return request.json()['result']
             except requests.ConnectionError:
                 raise IntelError
