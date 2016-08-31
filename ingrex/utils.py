@@ -1,4 +1,5 @@
 "Map Utils"
+
 from math import pi, sin, cos, tan, asin, radians, sqrt, log
 
 def calc_tile(lng, lat, zoomlevel):
