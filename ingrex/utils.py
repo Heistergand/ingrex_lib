@@ -1,3 +1,4 @@
+# -*- coding:utf-8 -*-
 "Map Utils"
 from math import pi, sin, cos, tan, asin, radians, sqrt, log
 
