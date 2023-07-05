@@ -16,7 +16,7 @@ def main():
     mints = -1
 
     while True:
-        intel = ingrex.Intel(cookies, field)
+        intel = ingrex.Intel(field, cookies)
         result = intel.fetch_msg(mints)
         if result:
             mints = result[0][1] + 1

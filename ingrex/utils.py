@@ -1,3 +1,4 @@
+# -*- coding:utf-8 -*-
 "Map Utils"
 from math import pi, sin, cos, tan, asin, radians, sqrt, log
 
@@ -78,3 +79,23 @@ def transformLon(x, y):
     ret += (150.0 * sin(x / 12.0 * pi) + 300.0 * sin(x / 30.0 * pi)) * 2.0 / 3.0
     return ret
 
+def gcj02towgs84(lng, lat):
+    """
+    GCJ02(火星坐标系)转GPS84
+    :param lng:火星坐标系的经度
+    :param lat:火星坐标系纬度
+    :return:
+    """
+    a = 6378245.0
+    ee = 0.00669342162296594323
+    dlat = transformLat(lng - 105.0, lat - 35.0)
+    dlng = transformLon(lng - 105.0, lat - 35.0)
+    radlat = lat / 180.0 * pi
+    magic = sin(radlat)
+    magic = 1 - ee * magic * magic
+    sqrtmagic = sqrt(magic)
+    dlat = (dlat * 180.0) / ((a * (1 - ee)) / (magic * sqrtmagic) * pi)
+    dlng = (dlng * 180.0) / (a / sqrtmagic * cos(radlat) * pi)
+    mglat = lat + dlat
+    mglng = lng + dlng
+    return [lng * 2 - mglng, lat * 2 - mglat]
